@@ -1,7 +1,22 @@
 from fastapi import FastAPI, Request, Response, status
-from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from linebot.v3 import (
+    WebhookHandler
+)
+from linebot.v3.exceptions import (
+    InvalidSignatureError
+)
+from linebot.v3.messaging import (
+    Configuration,
+    ApiClient,
+    MessagingApi,
+    ReplyMessageRequest,
+    TextMessage
+)
+from linebot.v3.webhooks import (
+    MessageEvent,
+    TextMessageContent
+)
+
 from ai import chat
 import os
 
@@ -11,7 +26,9 @@ app = FastAPI()
 CHANNEL_ACCESS_TOKEN = os.getenv("CHANNEL_ACCESS_TOKEN")
 CHANNEL_SECRET = os.getenv("CHANNEL_SECRET")
 
-line_bot_api = LineBotApi(CHANNEL_ACCESS_TOKEN)
+config = Configuration(access_token=CHANNEL_ACCESS_TOKEN)
+api_client = ApiClient(configuration=config)
+messaging_api = MessagingApi(api_client)
 handler = WebhookHandler(CHANNEL_SECRET)
 
 @app.post("/chat")
@@ -30,15 +47,19 @@ async def handle_webhook(request: Request):
 
     return Response(status_code=status.HTTP_200_OK)
 
-@handler.add(MessageEvent, message=TextMessage)
+@handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     print(event.message.text)
     if os.getenv("BOT_NAME") in event.message.text:
-        line_bot_api.reply_message(
-            event.reply_token,
-            TextSendMessage(text = chat(event.message.text)) # event.message.text
+        reply_token = event.reply_token
+        reply_text = chat(event.message.text)
+        
+        reply_message = ReplyMessageRequest(
+            reply_token=reply_token,
+            messages=[TextMessage(text=reply_text)]
         )
+        messaging_api.reply_message(reply_message)
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port = 5000)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

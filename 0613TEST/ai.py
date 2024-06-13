@@ -14,7 +14,7 @@ def chat(text):
     WEB_SITE = "https://www.nlight.tw/pages/facts"
 
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest")
-    OPENAI_EMBEDDING_DEPLOYMENT_NAME = "text-embedding-3-small"
+    EMBEDDING_DEPLOYMENT_NAME = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
     loader = WebBaseLoader(WEB_SITE)
 
@@ -26,7 +26,7 @@ def chat(text):
     docs = text_splitter.split_documents(documents)
 
     # Get embeddings
-    embeddings = GoogleGenerativeAIEmbeddings(deployment = OPENAI_EMBEDDING_DEPLOYMENT_NAME, chunk_size = 1)
+    embeddings = GoogleGenerativeAIEmbeddings(deployment = EMBEDDING_DEPLOYMENT_NAME, chunk_size = 1)
     vector = FAISS.from_documents(docs, embeddings)
     retriever = vector.as_retriever()
 
