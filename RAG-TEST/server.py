@@ -38,7 +38,6 @@ async def handle_webhook(request: Request):
 
     # 獲取請求體作為字串
     body = await request.body()
-
     try:
         # 處理 Webhook 事件
         handler.handle(body.decode(), signature)
@@ -50,15 +49,15 @@ async def handle_webhook(request: Request):
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     print(event.message.text)
-    if os.getenv("BOT_NAME") in event.message.text:
-        reply_token = event.reply_token
-        reply_text = chat(event.message.text)
-        
-        reply_message = ReplyMessageRequest(
-            reply_token=reply_token,
-            messages=[TextMessage(text=reply_text)]
-        )
-        messaging_api.reply_message(reply_message)
+
+    reply_token = event.reply_token
+    reply_text = chat(event.message.text)
+    
+    reply_message = ReplyMessageRequest(
+        reply_token=reply_token,
+        messages=[TextMessage(text=reply_text)]
+    )
+    messaging_api.reply_message(reply_message)
 
 if __name__ == "__main__":
     import uvicorn

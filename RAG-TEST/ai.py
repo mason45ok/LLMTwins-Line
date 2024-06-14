@@ -7,14 +7,23 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 import os
+import re
 
 your_api_key = os.getenv("GOOGLE_API_KEY")
 GOOGLE_API_KEY = your_api_key
+
+def remove_newline(input_str):
+    output_str = re.sub(r'\n\d+', '', input_str)
+    output_str = output_str.replace('\n', '')
+    output_str = output_str.replace('*', '')
+    output_str = output_str.replace('#', '')
+    return output_str
+
 def chat(text):
     WEB_SITE = "https://www.nlight.tw/pages/facts"
 
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-latest")
-    EMBEDDING_DEPLOYMENT_NAME = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
     loader = WebBaseLoader(WEB_SITE)
 
@@ -22,17 +31,16 @@ def chat(text):
     documents = loader.load()
 
     # Split documents
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size = 500, chunk_overlap = 100)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
     docs = text_splitter.split_documents(documents)
 
     # Get embeddings
-    embeddings = GoogleGenerativeAIEmbeddings(deployment = EMBEDDING_DEPLOYMENT_NAME, chunk_size = 1)
     vector = FAISS.from_documents(docs, embeddings)
     retriever = vector.as_retriever()
 
     context = []
     prompt = ChatPromptTemplate.from_messages([
-        ('system', '請以 zh_TW 語系回答\'s :\n\n{context}'),
+        ('system', '請以 zh_TW 語系回答\\n\\n{context}'),
         ('user', '問題: {input}'),
     ])
 
@@ -46,8 +54,7 @@ def chat(text):
           'context': context
         })
 
-        return response["answer"]
+        return remove_newline(response["answer"])
     except Exception as e:
         print(str(e))
         return os.getenv("BOT_NAME") + " 壞掉了，趕快請人類來修理: " + str(e)
-
